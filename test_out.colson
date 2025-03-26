@@ -1,0 +1,31 @@
+:::
+    1 :: string
+    2 :: \\
+    3 :: -123450000.0
+    4 :: True
+    5 :: False
+    6 :: None
+    7 :: ~--snip_pet
+    8 :: \escaped with trailing  \
+    dict :::
+        key :: duplicate value
+        other_key :: is there one "key"?
+    list ::
+        \wrong:::declaration\
+        string
+        ""
+        0.8
+        -3.0
+        -69
+        23456
+        True
+        False
+        None
+        ~--snip_pet--
+        \escaped with trailing  \
+        :::
+            key :: duplicate value
+            other_key :: is there one "key"?
+        ::
+            hello
+            world

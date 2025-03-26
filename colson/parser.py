@@ -6,17 +6,17 @@ from typing import Any
 PATTERNS: dict = {
     "comment": r"^\s*(::)\s*([^:\s].*|(?<=\s)\S.*)\s*$",
     "dict": r"^\s*(:::)\s*$",
-    "list": r"^\s*::\s*$",
+    "list": r"^\s*(::)\s*$",
     "escape": r"^\s*(\\)(.*)(\\)\s*$",
     "key_dict": r"^\s*(.*\S(?=\s)|.*[^:\s])\s*(:::)\s*$",
     "key_list": r"^\s*(.*\S(?=\s)|.*[^:\s])\s*(::)\s*$",
     "key_escape": r"^\s*(.*\S(?=\s)|.*[^:\s])\s*(::)\s*(\\)(.*)(\\)\s*$",
-    "key_lang": r"^\s*(.*\S(?=\s)|.*[^:\s])\s*(::)\s+(:)(True|False|None)\s*$",
-    "key_float": r"^\s*(.*\S(?=\s)|.*[^:\s])\s*(::)\s+(:(?=\S))([+-]?(?:\d*\.\d+|\d+\.?)(?:[eE][+-]?\d+)?)\s*$",
-    "key_str": r"^\s*(.*\S(?=\s)|.*[^:\s])\s*(::)\s*([^:\s].*|(?<=\s)\S.*)\s*$",
-    "lang": r"^\s*(:)(True|False|None)\s*$",
-    "float": r"^\s*(:(?=\S))([+-]?(?:\d*\.\d+|\d+\.?)(?:[eE][+-]?\d+)?)\s*$",
-    "str": r"^\s*(\S.*)\s*$",
+    "key_lang": r"^\s*(.*\S(?=\s)|.*[^:\s])\s*(::)\s*(True|False|None)\s*$",
+    "key_float": r"^\s*(.*\S(?=\s)|.*[^:\s])\s*(::)\s*([+-]?(?:\d*\.\d+|\d+\.?)(?:[eE][+-]?\d+)?)\s*$",
+    "key_str": r"^\s*(.*\S(?=\s)|.*[^:\s])\s*(::)\s*((?:[^:\s].*\S|[^:\s])|(?<=\s)(?:\S.*\S|\S))\s*$",
+    "lang": r"^\s*(True|False|None)\s*$",
+    "float": r"^\s*([+-]?(?:\d*\.\d+|\d+\.?)(?:[eE][+-]?\d+)?)\s*$",
+    "str": r"^\s*(\S.*\S|\S)\s*$",
 }
 
 
@@ -151,10 +151,10 @@ def _parse_from_colson(data: list, scope: list, level: int = 0, tab: int = 4):
     # Key : True|False|None
     if match := re.search(PATTERNS["key_lang"], line):
         key = match.group(1)
-        value = match.group(4)
+        value = match.group(3)
 
         if len(scope) == 0:
-            raise ValueError(f'"{key} :: :{value}" must have a parent dictionary.')
+            raise ValueError(f'"{key} :: {value}" must have a parent dictionary.')
 
         match value:
             case "True":
@@ -165,7 +165,7 @@ def _parse_from_colson(data: list, scope: list, level: int = 0, tab: int = 4):
                 value = None
             case _:
                 raise ValueError(
-                    f'For "{key}", ":{value}" cannot be processed as True, False or None.'
+                    f'For "{key}", "{value}" cannot be processed as True, False or None.'
                 )
 
         scope[-1][key] = value
@@ -175,15 +175,16 @@ def _parse_from_colson(data: list, scope: list, level: int = 0, tab: int = 4):
     # Key : Number
     if match := re.search(PATTERNS["key_float"], line):
         key = match.group(1)
-        value = match.group(4)
+        value = match.group(3)
+
+        if len(scope) == 0:
+            raise ValueError(f'"{key} :: {value}" must have a parent dictionary.')
 
         if "." in value or "e" in value.lower():
             value = float(value)
         else:
             value = int(value)
 
-        if len(scope) == 0:
-            raise ValueError(f'"{key} :: :{value}" must have a parent dictionary.')
         scope[-1][key] = value
         scope.append(value)
         return _parse_from_colson(rest, scope, level_new, tab)
@@ -202,7 +203,7 @@ def _parse_from_colson(data: list, scope: list, level: int = 0, tab: int = 4):
 
     # True|False|None
     if match := re.search(PATTERNS["lang"], line):
-        value = match.group(2)
+        value = match.group(1)
 
         match value:
             case "True":
@@ -221,7 +222,13 @@ def _parse_from_colson(data: list, scope: list, level: int = 0, tab: int = 4):
 
     # Number
     if match := re.search(PATTERNS["float"], line):
-        value = float(match.group(2))
+        value = match.group(1)
+
+        if "." in value or "e" in value.lower():
+            value = float(value)
+        else:
+            value = int(value)
+
         if len(scope) > 0:
             scope[-1].append(value)
         scope.append(value)
@@ -259,13 +266,12 @@ def _parse_to_colson(
 
     elif isinstance(data, (int, float, type(None))):
         prop = prop + " :: " if prop else ""
-        scope.append(indent + prop + ":" + str(data))
+        scope.append(indent + prop + str(data))
 
     elif (
         (data == "")
         or ("::" in data)
         or (data[0] == " " or data[-1] == " ")
-        or (data[0] == ":" and " " not in data)
         or (data[0] == "\\" and data[-1] == "\\")
     ):
         prop = prop + " :: " if prop else ""
