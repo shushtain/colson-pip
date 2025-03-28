@@ -1,6 +1,6 @@
 # ColSON pip
 
-ColSON parser for Python 3.
+[ColSON](https://github.com/shushtain/colson-vscode) parser for Python 3.
 
 > ⚠️ **In per-issue development**  
 > Any help or critique is encouraged.
