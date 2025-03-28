@@ -156,17 +156,7 @@ def _parse_from_colson(data: list, scope: list, level: int = 0, tab: int = 4):
         if len(scope) == 0:
             raise ValueError(f'"{key} :: {value}" must have a parent dictionary.')
 
-        match value:
-            case "True":
-                value = True
-            case "False":
-                value = False
-            case "None":
-                value = None
-            case _:
-                raise ValueError(
-                    f'For "{key}", "{value}" cannot be processed as True, False or None.'
-                )
+        value = _parse_lang(value)
 
         scope[-1][key] = value
         scope.append(value)
@@ -180,10 +170,7 @@ def _parse_from_colson(data: list, scope: list, level: int = 0, tab: int = 4):
         if len(scope) == 0:
             raise ValueError(f'"{key} :: {value}" must have a parent dictionary.')
 
-        if "." in value or "e" in value.lower():
-            value = float(value)
-        else:
-            value = int(value)
+        value = _parse_numeric(value)
 
         scope[-1][key] = value
         scope.append(value)
@@ -205,15 +192,7 @@ def _parse_from_colson(data: list, scope: list, level: int = 0, tab: int = 4):
     if match := re.search(PATTERNS["lang"], line):
         value = match.group(1)
 
-        match value:
-            case "True":
-                value = True
-            case "False":
-                value = False
-            case "None":
-                value = None
-            case _:
-                raise ValueError(f"{value} cannot be processed as True, False or None.")
+        value = _parse_lang(value)
 
         if len(scope) > 0:
             scope[-1].append(value)
@@ -224,10 +203,7 @@ def _parse_from_colson(data: list, scope: list, level: int = 0, tab: int = 4):
     if match := re.search(PATTERNS["float"], line):
         value = match.group(1)
 
-        if "." in value or "e" in value.lower():
-            value = float(value)
-        else:
-            value = int(value)
+        value = _parse_numeric(value)
 
         if len(scope) > 0:
             scope[-1].append(value)
@@ -282,3 +258,35 @@ def _parse_to_colson(
         scope.append(indent + prop + data)
 
     return "\n".join(scope)
+
+
+def _parse_lang(value) -> bool | None:
+    """Parse True | False | None"""
+    value = value.strip()
+
+    match value:
+        case "True":
+            value = True
+        case "False":
+            value = False
+        case "None":
+            value = None
+        case _:
+            raise ValueError(f"{value} cannot be processed as True, False or None.")
+
+    return value
+
+
+def _parse_numeric(value) -> float | int:
+    """Parse numeric values"""
+    value = value.strip()
+
+    # exponential float
+    if "." in value:
+        return float(value)
+
+    value = float(value)
+    if value % 1 == 0:
+        return int(value)
+
+    return value
