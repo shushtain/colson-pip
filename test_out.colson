@@ -7,7 +7,7 @@
     6 :: None
     7 :: ~--snip_pet
     8 :: \escaped with trailing  \
-    9 :: 404000
+    9 :: 4.04e+18
     dict :::
         key :: duplicate value
         other_key :: is there one "key"?

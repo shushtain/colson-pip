@@ -281,8 +281,7 @@ def _parse_numeric(value) -> float | int:
     """Parse numeric values"""
     value = value.strip()
 
-    # exponential float
-    if "." in value:
+    if "." in value or "e" in value.lower():
         return float(value)
 
     value = float(value)
